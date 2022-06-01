@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Reflection;
 using System.IO;
+using System.Text;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
+using PrinterUtility;
+using System.Drawing.Common;
 
 namespace print_handler
 {
@@ -28,6 +31,8 @@ namespace print_handler
                     System.Console.WriteLine("Failed to configure the URI scheme");
                 }
             }
+
+            printEpsonTestPage();
 
             System.Console.WriteLine("Done");
         }
@@ -80,6 +85,32 @@ namespace print_handler
             }
 
             return false;
+        }
+
+        private static void printEpsonTestPage() {
+            PrinterUtility.EscPosEpsonCommands.EscPosEpson printer = new PrinterUtility.EscPosEpsonCommands.EscPosEpson();
+            var BytesValue = printer.Separator();
+            BytesValue = PrintExtensions.AddBytes(BytesValue, printer.CharSize.DoubleHeight6());
+            BytesValue = PrintExtensions.AddBytes(BytesValue, printer.FontSelect.FontA());
+            BytesValue = PrintExtensions.AddBytes(BytesValue, printer.Alignment.Center());
+            BytesValue = PrintExtensions.AddBytes(BytesValue, Encoding.ASCII.GetBytes("Title\n"));
+            BytesValue = PrintExtensions.AddBytes(BytesValue, CutPage());
+            //PrinterUtility.PrintExtensions.Print(BytesValue, "\\\\\\\\192.168.105.90\\\\EPSON-LX-350 @ atorales-MS-7C31");
+            System.Console.WriteLine("asdasd");
+        }
+
+        private static byte[] CutPage() {
+            List<byte> list = new List<byte>();
+            list.Add(Convert.ToByte(Convert.ToChar(0x1D)));
+            list.Add(Convert.ToByte('V'));
+            list.Add((byte)66);
+            list.Add((byte)3);
+            return list.ToArray();
+        }
+
+        private static string GetDefaultPrinter() {
+            PrinterSettings settings = new PrinterSettings();
+            return "";
         }
 
     }
