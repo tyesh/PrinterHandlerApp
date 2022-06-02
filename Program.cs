@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Reflection;
-using System.IO;
-using System.Text;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
-using PrinterUtility;
 using System.Drawing.Printing;
-using System.Management;
+using System.Drawing;
 
 namespace print_handler
 {
@@ -27,15 +24,14 @@ namespace print_handler
         {
             if(configureUriScheme) {
                 if(ConfigureURIScheme()) {
-                    System.Console.WriteLine("Successfully registered the URI scheme");
+                    Console.WriteLine("Successfully registered the URI scheme");
                 } else {
-                    System.Console.WriteLine("Failed to configure the URI scheme");
+                    Console.WriteLine("Failed to configure the URI scheme");
                 }
             }
 
-            printEpsonTestPage();
-
-            System.Console.WriteLine("Done");
+            printGenericTestPage();
+            Console.WriteLine("Done");
         }
 
         /// <summary>
@@ -60,7 +56,7 @@ namespace print_handler
                 assemblyLocation = Path.ChangeExtension(assemblyLocation, ".exe");
 
                 if(!File.Exists(assemblyLocation)) {
-                    System.Console.WriteLine("Could not find executable, please package as an exe.");
+                    Console.WriteLine("Could not find executable, please package as an exe.");
                     return false;
                 }
             }
@@ -82,63 +78,28 @@ namespace print_handler
             }
             catch (UnauthorizedAccessException authEx)
             {
-                System.Console.WriteLine($"Failed to register the URI scheme: {authEx.Message}");
+                Console.WriteLine($"Failed to register the URI scheme: {authEx.Message}");
             }
 
             return false;
         }
 
-        private static void printEpsonTestPage() {
-            PrinterUtility.EscPosEpsonCommands.EscPosEpson printer = new PrinterUtility.EscPosEpsonCommands.EscPosEpson();
-            var BytesValue = printer.Separator();
-            BytesValue = PrintExtensions.AddBytes(BytesValue, printer.CharSize.DoubleHeight6());
-            BytesValue = PrintExtensions.AddBytes(BytesValue, printer.FontSelect.FontA());
-            BytesValue = PrintExtensions.AddBytes(BytesValue, printer.Alignment.Center());
-            BytesValue = PrintExtensions.AddBytes(BytesValue, Encoding.ASCII.GetBytes("Title\n"));
-            BytesValue = PrintExtensions.AddBytes(BytesValue, CutPage());
-            PrinterUtility.PrintExtensions.Print(BytesValue, GetPrinterPort());
-            System.Console.WriteLine("Press any key");
-            System.Console.ReadLine();
-        }
+        private static void printGenericTestPage() {
 
-        private static byte[] CutPage() {
-            List<byte> list = new List<byte>();
-            list.Add(Convert.ToByte(Convert.ToChar(0x1D)));
-            list.Add(Convert.ToByte('V'));
-            list.Add((byte)66);
-            list.Add((byte)3);
-            return list.ToArray();
-        }
+            string s = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer ac pellentesque est, id tristique quam. Proin vitae justo elit. Duis consectetur justo sed turpis pretium, ut viverra tellus porttitor. Donec tristique purus quis mi lobortis finibus. Integer in lectus nec nibh pellentesque malesuada vel et purus. Pellentesque porttitor tempus commodo. Mauris in est pulvinar, mattis leo a, posuere lorem. Etiam egestas libero ac arcu suscipit fermentum. Sed auctor fringilla urna, id fermentum odio vestibulum a. Suspendisse potenti. Donec elit magna, luctus non aliquet nec, scelerisque sed tortor. Morbi hendrerit interdum nulla id placerat. Donec libero leo, ornare ac ullamcorper eu, eleifend sed urna. Curabitur gravida fringilla augue ut euismod.";
 
-        private static string GetDefaultPrinter() {
-            PrinterSettings settings = new PrinterSettings();
-            foreach (string printer in PrinterSettings.InstalledPrinters) {
-                settings.PrinterName = printer;
-                System.Console.WriteLine(printer);
-                if (settings.IsDefaultPrinter)  {
-                    return printer;
-                }
+            PrintDocument p = new PrintDocument();
+            p.PrintPage += delegate(Object sender1, PrintPageEventArgs e1) {
+                e1.Graphics.DrawString(s, new Font("TImes New Roman", 12), new SolidBrush(Color.Black), new RectangleF(0, 0, p.DefaultPageSettings.PrintableArea.Width, p.DefaultPageSettings.PrintableArea.Height));
+            };
+            try
+            {
+               p.Print(); 
             }
-            return "";
-        }
-
-        private static string GetPrinterPort() {
-            string query = String.Format("Select * from Win32_Printer WHERE Name LIKE '%{0}'", GetDefaultPrinter());
-            ManagementObjectSearcher printers = new ManagementObjectSearcher(query);
-            foreach(ManagementObject printer in printers.Get()) {
-                System.Console.WriteLine((string) printer.GetPropertyValue("name"));
-                System.Console.WriteLine((string) printer.GetPropertyValue("PortName"));
-                System.Console.WriteLine((string) printer.GetPropertyValue("ShareName"));
-                System.Console.WriteLine((string) printer.GetPropertyValue("ServerName"));
-                System.Console.WriteLine((string) printer.GetPropertyValue("SystemName"));
-                System.Console.WriteLine((string) printer.GetPropertyValue("Location"));
-                //string printerName = "\\\\" + printer.GetPropertyValue("Location") + "\\" + printer.GetPropertyValue("name");
-                //EPSON-LX-350 @ atorales-MS-7C31
-                string printerName = (string) printer.GetPropertyValue("PortName");
-                System.Console.WriteLine(printerName);
-                return printerName;
+            catch (Exception ex)
+            {
+                throw new Exception("Exception ocurred while printing", ex);
             }
-            return "";
         }
 
     }
