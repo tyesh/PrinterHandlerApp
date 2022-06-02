@@ -1,8 +1,8 @@
-﻿using System;
-using System.Reflection;
-using System.IO;
+﻿using System.Reflection;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
+using System.Drawing.Printing;
+using System.Drawing;
 
 namespace print_handler
 {
@@ -14,22 +14,28 @@ namespace print_handler
         /// C# application to provide print method for default printer with a custom URI scheme
         /// </summary>
         /// <param name="configureUriScheme">Flag to ask the application to configure the URI scheme</param>
+        /// <param name="printTestPage">Flag to ask the application to to print a test page in the default printer</param>
         /// <param name="documentId">Id for the document to print</param>
         /// <returns></returns>
         static void Main(
             bool configureUriScheme = false,
+            bool printTestPage = false,
             string documentId = ""
         )
         {
             if(configureUriScheme) {
                 if(ConfigureURIScheme()) {
-                    System.Console.WriteLine("Successfully registered the URI scheme");
+                    Console.WriteLine("Successfully registered the URI scheme");
                 } else {
-                    System.Console.WriteLine("Failed to configure the URI scheme");
+                    Console.WriteLine("Failed to configure the URI scheme");
                 }
             }
 
-            System.Console.WriteLine("Done");
+            if(printTestPage) {
+                printGenericTestPage();
+            }
+            
+            Console.WriteLine("Done");
         }
 
         /// <summary>
@@ -54,7 +60,7 @@ namespace print_handler
                 assemblyLocation = Path.ChangeExtension(assemblyLocation, ".exe");
 
                 if(!File.Exists(assemblyLocation)) {
-                    System.Console.WriteLine("Could not find executable, please package as an exe.");
+                    Console.WriteLine("Could not find executable, please package as an exe.");
                     return false;
                 }
             }
@@ -76,10 +82,32 @@ namespace print_handler
             }
             catch (UnauthorizedAccessException authEx)
             {
-                System.Console.WriteLine($"Failed to register the URI scheme: {authEx.Message}");
+                Console.WriteLine($"Failed to register the URI scheme: {authEx.Message}");
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Send a lorem ipsun text to a default printer
+        /// </summary>
+        /// <returns></returns>
+        private static void printGenericTestPage() {
+
+            string s = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer ac pellentesque est, id tristique quam. Proin vitae justo elit. Duis consectetur justo sed turpis pretium, ut viverra tellus porttitor. Donec tristique purus quis mi lobortis finibus. Integer in lectus nec nibh pellentesque malesuada vel et purus. Pellentesque porttitor tempus commodo. Mauris in est pulvinar, mattis leo a, posuere lorem. Etiam egestas libero ac arcu suscipit fermentum. Sed auctor fringilla urna, id fermentum odio vestibulum a. Suspendisse potenti. Donec elit magna, luctus non aliquet nec, scelerisque sed tortor. Morbi hendrerit interdum nulla id placerat. Donec libero leo, ornare ac ullamcorper eu, eleifend sed urna. Curabitur gravida fringilla augue ut euismod.";
+
+            PrintDocument p = new PrintDocument();
+            p.PrintPage += delegate(Object sender1, PrintPageEventArgs e1) {
+                e1.Graphics.DrawString(s, new Font("TImes New Roman", 12), new SolidBrush(Color.Black), new RectangleF(0, 0, p.DefaultPageSettings.PrintableArea.Width, p.DefaultPageSettings.PrintableArea.Height));
+            };
+            try
+            {
+               p.Print(); 
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Exception ocurred while printing", ex);
+            }
         }
 
     }
