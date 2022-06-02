@@ -5,7 +5,8 @@ using System.Text;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
 using PrinterUtility;
-using System.Drawing.Common;
+using System.Drawing.Printing;
+using System.Management;
 
 namespace print_handler
 {
@@ -95,8 +96,9 @@ namespace print_handler
             BytesValue = PrintExtensions.AddBytes(BytesValue, printer.Alignment.Center());
             BytesValue = PrintExtensions.AddBytes(BytesValue, Encoding.ASCII.GetBytes("Title\n"));
             BytesValue = PrintExtensions.AddBytes(BytesValue, CutPage());
-            //PrinterUtility.PrintExtensions.Print(BytesValue, "\\\\\\\\192.168.105.90\\\\EPSON-LX-350 @ atorales-MS-7C31");
-            System.Console.WriteLine("asdasd");
+            PrinterUtility.PrintExtensions.Print(BytesValue, GetPrinterPort());
+            System.Console.WriteLine("Press any key");
+            System.Console.ReadLine();
         }
 
         private static byte[] CutPage() {
@@ -110,6 +112,32 @@ namespace print_handler
 
         private static string GetDefaultPrinter() {
             PrinterSettings settings = new PrinterSettings();
+            foreach (string printer in PrinterSettings.InstalledPrinters) {
+                settings.PrinterName = printer;
+                System.Console.WriteLine(printer);
+                if (settings.IsDefaultPrinter)  {
+                    return printer;
+                }
+            }
+            return "";
+        }
+
+        private static string GetPrinterPort() {
+            string query = String.Format("Select * from Win32_Printer WHERE Name LIKE '%{0}'", GetDefaultPrinter());
+            ManagementObjectSearcher printers = new ManagementObjectSearcher(query);
+            foreach(ManagementObject printer in printers.Get()) {
+                System.Console.WriteLine((string) printer.GetPropertyValue("name"));
+                System.Console.WriteLine((string) printer.GetPropertyValue("PortName"));
+                System.Console.WriteLine((string) printer.GetPropertyValue("ShareName"));
+                System.Console.WriteLine((string) printer.GetPropertyValue("ServerName"));
+                System.Console.WriteLine((string) printer.GetPropertyValue("SystemName"));
+                System.Console.WriteLine((string) printer.GetPropertyValue("Location"));
+                //string printerName = "\\\\" + printer.GetPropertyValue("Location") + "\\" + printer.GetPropertyValue("name");
+                //EPSON-LX-350 @ atorales-MS-7C31
+                string printerName = (string) printer.GetPropertyValue("PortName");
+                System.Console.WriteLine(printerName);
+                return printerName;
+            }
             return "";
         }
 
